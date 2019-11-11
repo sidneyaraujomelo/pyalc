@@ -83,11 +83,11 @@ def regressive_substitution(matrix_A, vector_b):
     for k in range(vector_b.shape[0]-2, -1, -1):
         print(f"Partial solution: {x}")
         dem = matrix_A[k][k]
-        #print(dem)
+        # print(dem)
         post_x = x[k+1:]
-        #print(post_x)
+        # print(post_x)
         post_a = matrix_A[k][k+1:]
-        #print(post_a)
+        # print(post_a)
         num = vector_b[k] - np.sum(post_x*post_a)
         x[k] = num / dem
     print(f"Solution: {x}")
@@ -116,3 +116,75 @@ def gaussian_elimination(matrix_A, vector_b, factorization_only=False):
         return None, matrix_A, None, matrix_L
     x = regressive_substitution(matrix_A, vector_b)
     return x, matrix_A, vector_b, matrix_L
+
+
+def gauss_jacobi(matrix_A, vector_b, vector_x, max_k=500, e=1e-10):
+    new_x = np.copy(vector_x)
+    last_result = 0
+    tol = 0
+    for k in range(max_k):
+        print(f"Iteraction {k}")
+        for i in range(new_x.shape[0]):
+            mask = np.ones_like(new_x, dtype=bool)
+            mask[i] = 0
+            #print(mask)
+            slice_Ai = matrix_A[i][mask]
+            slice_x = vector_x[mask]
+            a_x_term = np.sum(slice_Ai*slice_x)
+            new_x[i] = (vector_b[i]-a_x_term)/matrix_A[i][i]
+        print(f"Partial solution: {new_x}")
+        dif = new_x - vector_x
+        error = np.linalg.norm(dif, np.inf)
+        print(f"error: {error}")
+        if error < e:
+            return new_x
+        else:
+            vector_x = np.copy(new_x)
+
+
+def gauss_seidel(matrix_A, vector_b, vector_x, max_k=500, e=1e-10):
+    new_x = np.copy(vector_x)
+    last_result = 0
+    tol = 0
+    for k in range(max_k):
+        print(f"Iteraction {k}")
+        for i in range(new_x.shape[0]):
+            mask = np.ones_like(new_x, dtype=bool)
+            mask[i] = 0
+            #print(mask)
+            slice_Ai = matrix_A[i][mask]
+            slice_x = np.hstack((new_x[:i], vector_x[i+1:]))
+            a_x_term = np.sum(slice_Ai*slice_x)
+            new_x[i] = (vector_b[i]-a_x_term)/matrix_A[i][i]
+        print(f"Partial solution: {new_x}")
+        dif = new_x - vector_x
+        error = np.linalg.norm(dif, np.inf)
+        print(f"error: {error}")
+        if error < e:
+            return new_x
+        else:
+            vector_x = np.copy(new_x)
+
+
+def conjugate_gradient(matrix_A, vector_b, vector_x, max_k=500, e=1e-10):
+    x = np.copy(vector_x)
+    r_k = vector_b - matrix_A.dot(x)
+    p = np.copy(r_k)
+    rm_k = r_k.transpose().dot(r_k)
+    rm_0 = rm_k
+    for k in range(max_k):
+        if rm_k < e:
+            return x
+        a = rm_k / p.transpose().dot(matrix_A).dot(p)
+        input(a)
+        x = x+a*p
+        input(x)
+        r_k1 = r_k - a*matrix_A.dot(p)
+        rm_k1 = r_k1.transpose().dot(r_k1)
+        beta = rm_k1 / rm_k
+        p = r_k1 + beta*p
+        rm_k = rm_k1
+        r_k = r_k1
+        input(rm_k)
+        print(f"partial solution: {x}")
+    return x
