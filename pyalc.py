@@ -4,6 +4,7 @@ import numpy as np
 def partial_pivoting(matrix_A, vector_b):
     """ Apply partial pivoting to the system """
     print("=== Partial Pivoting ===")
+    stop_step = 0
     reorder_row = np.arange(vector_b.shape[0])
     for p in range(matrix_A.shape[0]-1):
         print(f"== step {p}:")
@@ -17,12 +18,15 @@ def partial_pivoting(matrix_A, vector_b):
             reorder_row[[p+max_col_id, p]] = reorder_row[[p, p+max_col_id]]
         print(matrix_A)
         print(vector_b)
+        if p == stop_step:
+            stop_step = int(input("input new stop step "))
     return matrix_A, vector_b, reorder_row
 
 
 def partial_pivoting_with_scale(matrix_A, vector_b):
     """ Apply partial pivoting with scale to the system """
     print("=== Partial Pivoting with Scale ===")
+    stop_step = 0
     scale_factor = np.max(np.abs(matrix_A), axis=1)
     reorder_row = np.arange(vector_b.shape[0])
     print(f"Scale factors: {scale_factor}")
@@ -41,12 +45,15 @@ def partial_pivoting_with_scale(matrix_A, vector_b):
             reorder_row[[p+max_col_id, p]] = reorder_row[[p, p+max_col_id]]
         print(matrix_A)
         print(vector_b)
+        if p == stop_step:
+            stop_step = int(input("input new stop step "))
     return matrix_A, vector_b, reorder_row
 
 
 def complete_pivoting(matrix_A, vector_b):
     """ Apply complete pivoting to the system """
     print("=== Complete Pivoting ===")
+    stop_step = 0
     reorder_row = np.arange(vector_b.shape[0])
     reorder_col = np.arange(vector_b.shape[0])
     print(f"X order: {reorder_col}")
@@ -70,6 +77,8 @@ def complete_pivoting(matrix_A, vector_b):
         print(matrix_A)
         print(vector_b)
         print(reorder_col)
+        if p == stop_step:
+            stop_step = int(input("input new stop step "))
         #input("...")
     return matrix_A, vector_b, reorder_row, reorder_col
 
@@ -98,10 +107,11 @@ def gaussian_elimination(matrix_A, vector_b, factorization_only=False):
     """ Performs gaussian elimination in order solve a linear system """
     print("=== Gaussian Elimination ===")
     matrix_L = np.zeros_like(matrix_A)
+    stop_step = 0
     for p in range(matrix_A.shape[0]):
         a_pp = matrix_A[p][p]
         matrix_L[p][p] = 1
-        print(f"elemento pivot: {a_pp}")
+        print(f"Posição do pivot: {p}, Elemento pivot: {a_pp}")
         for c_c in range(p+1, matrix_A.shape[0]):
             print(f"linha corrente: {c_c}")
             m_p = matrix_A[c_c][p]/a_pp
@@ -112,6 +122,8 @@ def gaussian_elimination(matrix_A, vector_b, factorization_only=False):
             print(matrix_A)
             print(vector_b)
             #input("...")
+        if p == stop_step:
+            stop_step = int(input("input new stop step "))
     if factorization_only:
         return None, matrix_A, None, matrix_L
     x = regressive_substitution(matrix_A, vector_b)
@@ -132,7 +144,9 @@ def gauss_jacobi(matrix_A, vector_b, vector_x, max_k=500, e=1e-10):
             slice_x = vector_x[mask]
             a_x_term = np.sum(slice_Ai*slice_x)
             new_x[i] = (vector_b[i]-a_x_term)/matrix_A[i][i]
-        print(f"Partial solution: {new_x}")
+        print(f"Step {k}, Partial solution: {new_x}")
+        if k == stop_step:
+            stop_step = int(input("input new stop step "))
         dif = new_x - vector_x
         error = np.linalg.norm(dif, np.inf)
         print(f"error: {error}")
@@ -143,6 +157,7 @@ def gauss_jacobi(matrix_A, vector_b, vector_x, max_k=500, e=1e-10):
 
 
 def gauss_seidel(matrix_A, vector_b, vector_x, max_k=500, e=1e-10):
+    stop_step = 0
     new_x = np.copy(vector_x)
     last_result = 0
     tol = 0
@@ -156,7 +171,9 @@ def gauss_seidel(matrix_A, vector_b, vector_x, max_k=500, e=1e-10):
             slice_x = np.hstack((new_x[:i], vector_x[i+1:]))
             a_x_term = np.sum(slice_Ai*slice_x)
             new_x[i] = (vector_b[i]-a_x_term)/matrix_A[i][i]
-        print(f"Partial solution: {new_x}")
+        print(f"Step {k}, Partial solution: {new_x}")
+        if k == stop_step:
+            stop_step = int(input("input new stop step "))
         dif = new_x - vector_x
         error = np.linalg.norm(dif, np.inf)
         print(f"error: {error}")
@@ -166,25 +183,43 @@ def gauss_seidel(matrix_A, vector_b, vector_x, max_k=500, e=1e-10):
             vector_x = np.copy(new_x)
 
 
-def conjugate_gradient(matrix_A, vector_b, vector_x, max_k=500, e=1e-10):
+def conjugate_gradient(matrix_A, vector_b, vector_x, matrix_C, max_k=500, e=1e-10):
+    stop_step = 0
     x = np.copy(vector_x)
+    #residuo no passo k
     r_k = vector_b - matrix_A.dot(x)
-    p = np.copy(r_k)
-    rm_k = r_k.transpose().dot(r_k)
-    rm_0 = rm_k
+    #pre-condicionador z no passo k
+    z_k = np.linalg.inv(matrix_C).dot(r_k)
+    p = np.copy(z_k)
     for k in range(max_k):
-        if rm_k < e:
-            return x
-        a = rm_k / p.transpose().dot(matrix_A).dot(p)
-        input(a)
+        #termo de cima da equação do alpha
+        rz_k = r_k.transpose().dot(z_k)
+        #alpha
+        a = rz_k / p.transpose().dot(matrix_A).dot(p)
+        #input(a)
+        #atualiza a solução
         x = x+a*p
-        input(x)
+        #input(x)
+        #calcula residuo do passo k+1
         r_k1 = r_k - a*matrix_A.dot(p)
-        rm_k1 = r_k1.transpose().dot(r_k1)
-        beta = rm_k1 / rm_k
-        p = r_k1 + beta*p
-        rm_k = rm_k1
+        #condição de saída
+        if np.linalg.norm(r_k1, np.inf) < e:
+            return x
+        #pre-condicionador z no passo k+1
+        z_k1 = np.linalg.inv(matrix_C).dot(r_k1)
+        #calculo do beta
+        beta = (z_k1.transpose().dot(r_k1)) / (z_k.transpose().dot(r_k))
+        #atualiza p
+        p = z_k1 + beta*p
+        if k == stop_step:
+            print(f"Matrix r_k {r_k}")
+            print(f"Matrix z_k {z_k}")
+            print(f"Matrix p {p}")
+            print(f"alpha {a}")
+            stop_step = int(input("input new stop step "))
+        #Passa z e r na posição k+1 para k, pois vamos passar para o próximo ciclo!
+        z_k = z_k1
         r_k = r_k1
-        input(rm_k)
-        print(f"partial solution: {x}")
+        #input(rm_k)
+        print(f"Step {k}, partial solution: {x}")
     return x
