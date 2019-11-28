@@ -10,6 +10,7 @@ def main():
     argsParser.add_argument("b")
     argsParser.add_argument("x")
     argsParser.add_argument("--method", type=str, default="gauss_jacobi")
+    argsParser.add_argument("--pivoting", type=str, default=None)
     argsParser.add_argument("--C")
 
     args = argsParser.parse_args()
@@ -18,6 +19,7 @@ def main():
     b_file = args.b
     x_file = args.x
     method = args.method
+    pivoting = args.pivoting
     if method == "conjugate_gradient":
         C_file = args.C
         o_matrix_C = np.loadtxt(C_file)
@@ -57,16 +59,40 @@ def main():
     #o_vector_b = b
     #o_vector_x = np.zeros_like(b)
     #print(o_vector_x)
+    
+    stop_step = 0
+    reorder_row = None
+    reorder_col = None
+    scale_factor = None
+    matrix_A = o_matrix_A
+    vector_b = o_vector_b
 
+    for p in range(matrix_A.shape[0]):
+        if pivoting == "partial":
+            matrix_A, vector_b, stop_step, reorder_row, _ = partial_pivoting(
+                matrix_A, vector_b, p, stop_step=stop_step,
+                reorder_row=reorder_row)
+        elif pivoting == "partial_with_scale":
+            print(scale_factor)
+            if not isinstance(scale_factor, np.ndarray):
+                scale_factor = np.max(np.abs(matrix_A), axis=1)
+            matrix_A, vector_b, stop_step, reorder_row, _ = partial_pivoting_with_scale(
+                matrix_A, vector_b, p, scale_factor=scale_factor,
+                stop_step=stop_step, reorder_row=reorder_row)
+            scale_factor = scale_factor[np.argsort(reorder_row)]
+        elif pivoting == "complete":
+            matrix_A, vector_b, stop_step, reorder_row, reorder_col = complete_pivoting(
+                matrix_A, vector_b, p, stop_step=stop_step,
+                reorder_row=reorder_row, reorder_col=reorder_col)
+            
+    stop_step = 0
     if method == "gauss_jacobi":
-        matrix_A, vector_b, reorder_row = partial_pivoting(o_matrix_A, o_vector_b)
         solution = gauss_jacobi(matrix_A, vector_b, o_vector_x)
     elif method == "gauss_seidel":
-        matrix_A, vector_b, reorder_row, reorder_col = complete_pivoting(o_matrix_A, o_vector_b)
-        unsorted_solution = gauss_seidel(o_matrix_A, o_vector_b, o_vector_x)
+        unsorted_solution = gauss_seidel(matrix_A, vector_b, o_vector_x)
         solution = unsorted_solution[np.argsort(reorder_col)]
     elif method == "conjugate_gradient":
-        solution = conjugate_gradient(o_matrix_A, o_vector_b, o_vector_x, o_matrix_C)
+        solution = conjugate_gradient(matrix_A, vector_b, o_vector_x, o_matrix_C)
     else:
         print(f"Sorry. The method {method} is not implemented!")
         return

@@ -21,17 +21,8 @@ def main():
     print(o_matrix_A)
     print(o_vector_b)
 
-    if pivot == "partial":
-        matrix_A, vector_b, reorder_row = partial_pivoting(o_matrix_A, o_vector_b)
-    elif pivot == "partial_scale":
-        matrix_A, vector_b, reorder_row = partial_pivoting_with_scale(o_matrix_A, o_vector_b)
-    elif pivot == "complete":
-        matrix_A, vector_b, reorder_row, reorder_col = complete_pivoting(o_matrix_A, o_vector_b)
-    else:
-        matrix_A, vector_b = o_matrix_A, o_vector_b
-
-    x, _, _, _ = gaussian_elimination(matrix_A, vector_b)
-    #print(reorder_row)
+    x, _, _, _, reorder_row, reorder_col = gaussian_elimination(o_matrix_A, o_vector_b, pivoting=pivot)
+    print(reorder_col)
     if pivot == "complete":
         print(f"Reordered solution: {x[np.argsort(reorder_col)]}")
 
