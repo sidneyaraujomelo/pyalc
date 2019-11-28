@@ -204,38 +204,33 @@ def conjugate_gradient(matrix_A, vector_b, vector_x, matrix_C, max_k=500, e=1e-1
     x = np.copy(vector_x)
     #residuo no passo k
     r_k = vector_b - matrix_A.dot(x)
-    #pre-condicionador z no passo k
-    z_k = np.linalg.inv(matrix_C).dot(r_k)
-    v = np.copy(z_k)
+    w_k = matrix_C.dot(r_k)
+    v = matrix_C.dot(w_k)
     for k in range(max_k):
-        #termo de cima da equação do alpha
-        rz_k = r_k.transpose().dot(z_k)
-        #alpha
-        t = rz_k / v.transpose().dot(matrix_A).dot(v)
-        #input(a)
+        alpha = np.dot(w_k, w_k)
+        t = alpha / v.transpose().dot(matrix_A).dot(v)
+        #input(t)
         #atualiza a solução
         x = x+t*v
-        #input(x)
-        #calcula residuo do passo k+1
-        r_k1 = r_k - t*matrix_A.dot(v)
-        #condição de saída
-        if np.linalg.norm(r_k1, np.inf) < e:
-            return x
-        #pre-condicionador z no passo k+1
-        z_k1 = np.linalg.inv(matrix_C).dot(r_k1)
-        #calculo do beta
-        beta = (z_k1.transpose().dot(r_k1)) / (z_k.transpose().dot(r_k))
-        #atualiza p
-        v = z_k1 + beta*v
-        if k == stop_step:
-            print(f"Matrix r_k {r_k}")
-            print(f"Matrix z_k {z_k}")
-            print(f"v {v}")
-            print(f"t {t}")
-            stop_step = int(input("input new stop step "))
-        #Passa z e r na posição k+1 para k, pois vamos passar para o próximo ciclo!
-        z_k = z_k1
-        r_k = r_k1
-        #input(rm_k)
         print(f"Step {k}, partial solution: {x}")
+        if k == stop_step:
+            print(f"r: {r_k}")
+            print(f"w: {w_k}")
+            print(f"v: {v}")
+            print(f"t: {t}")
+            print(f"alpha: {alpha}")
+            stop_step = int(input("input new stop step "))
+        #input(x)
+        #atualiza residuo
+        r_k = r_k - t*matrix_A.dot(v)
+        #condição de saída
+        if np.linalg.norm(r_k, np.inf) < e:
+            return x
+        #atualiza w
+        w_k = matrix_C.dot(r_k)
+        #calculo do beta
+        beta = np.dot(w_k, w_k)
+        #atualiza v
+        v = matrix_C.dot(w_k) + (beta/alpha)*v
+        alpha = beta
     return x
